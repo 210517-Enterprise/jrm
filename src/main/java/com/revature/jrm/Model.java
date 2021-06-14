@@ -2,7 +2,7 @@ package com.revature.jrm;
 
 import java.util.List;
 
-public abstract class Model {
+public abstract class Model<T> {
     /**
      * The connection pool used to get connections for the CRUD operations
      */
@@ -18,7 +18,7 @@ public abstract class Model {
      * @param id the id of the entity
      * @return the requested entity
      */
-    public static Model get(int id) {
+    public static <T> T get(int id) {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Query for entity using "where id=?"
@@ -31,7 +31,7 @@ public abstract class Model {
      *
      * @return the list of all objects
      */
-    public static List<Model> all() {
+    public static <T> List<T> all() {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Query for all entities
@@ -45,7 +45,7 @@ public abstract class Model {
      * @param query the value to put in the where clause
      * @return list of objects that match
      */
-    public static List<Model> where(String query) {
+    public static <T> List<T> where(String query) {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
