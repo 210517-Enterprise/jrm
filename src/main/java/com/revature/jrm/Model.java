@@ -7,6 +7,10 @@ public abstract class Model {
      * The connection pool used to get connections for the CRUD operations
      */
     private static ConnectionPool pool = new ConnectionPool();
+    /**
+     * The transaction manager is used to alter behavior if a transaction is in progress
+     */
+    private static TransactionManager transactionManager = new TransactionManager();
 
     /**
      * Returns an object from the database with the given id

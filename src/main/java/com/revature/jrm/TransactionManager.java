@@ -1,6 +1,8 @@
 package com.revature.jrm;
 
 public class TransactionManager {
+    private static ConnectionPool pool = new ConnectionPool();
+
     public void begin() {}
     public void commit() {}
     public void rollback() {}
