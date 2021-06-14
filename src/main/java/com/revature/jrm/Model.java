@@ -19,6 +19,10 @@ public abstract class Model {
      * @return the requested entity
      */
     public static Model get(int id) {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Query for entity using "where id=?"
+        // 4. Construct object and return it
         return null;
     }
 
@@ -28,6 +32,10 @@ public abstract class Model {
      * @return the list of all objects
      */
     public static List<Model> all() {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Query for all entities
+        // 4. Create objects and return the list
         return null;
     }
 
@@ -38,6 +46,10 @@ public abstract class Model {
      * @return list of objects that match
      */
     public static List<Model> where(String query) {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
+        // 4. Create objects and return the list
         return null;
     }
 
@@ -45,17 +57,30 @@ public abstract class Model {
      * Deletes all entities of the model's type
      */
     public static void destroy_all() {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Delete all objects e.g. "delete from users"
     }
 
     /**
      * Saves the current object to database
      */
     public void save() {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Check if table exists, create it if it does not exist (maybe separate function)
+        // 4. Check if the model object's id attribute is null
+        // 5. Use TransactionManager to check if transaction in progress, if it is use that connection and do conn.commit()
+        // 6. If the id is null then use insert to insert to database and set id attribute after insertion
+        // 7. If the id is not null then use update statement instead
     }
 
     /**
      * Deletes the current object from the database
      */
     public void destroy() {
+        // 1. Use reflection API to get the table name from annotations
+        // 2. Get connection from connection pool
+        // 3. Delete using where statement with id where id equals this object's id
     }
 }
