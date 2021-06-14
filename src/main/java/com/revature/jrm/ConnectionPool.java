@@ -66,7 +66,7 @@ public class ConnectionPool {
         try {
             return ds.getConnection();
         }catch (SQLException sqle) {
-        	log.info("Database connection extablished!");
+        	log.error("Failed to establish a connection with the DataBase");
         }
         return null;
     }
