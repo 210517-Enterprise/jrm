@@ -36,8 +36,8 @@ public class ConnectionPool {
             props.load(new FileReader("src/main/resources/application.properties"));
             ds = new BasicDataSource();
             ds.setUrl(props.getProperty("url"));
-            ds.setUsername(props.getProperty("admin-username"));
-            ds.setPassword(props.getProperty("admin-password"));
+            ds.setUsername(props.getProperty("username"));
+            ds.setPassword(props.getProperty("password"));
             ds.setMinIdle(5);
             ds.setDefaultAutoCommit(false);
             ds.setMaxIdle(10);
