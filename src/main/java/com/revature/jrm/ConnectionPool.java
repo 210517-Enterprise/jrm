@@ -23,7 +23,7 @@ public class ConnectionPool {
         try {
             Class.forName("org.postgresql.Driver");
         }catch (ClassNotFoundException cnfe) {
-            log.error("Failed to establish a connection with the DataBase");
+            log.error("Failed to establish a connection with the Database");
         }
     }
 
@@ -45,7 +45,7 @@ public class ConnectionPool {
             log.info("Database connection extablished!");
         }catch(IOException ioe) {
             System.out.println("sorry, no application properties file found.");
-            log.error("Failed to establish a connection with the DataBase");
+            log.error("Failed to establish a connection with the Database");
             //A place to log errors
         }
     }
@@ -66,7 +66,7 @@ public class ConnectionPool {
         try {
             return ds.getConnection();
         }catch (SQLException sqle) {
-        	log.error("Failed to establish a connection with the DataBase");
+        	log.error("Failed to establish a connection with the Database");
         }
         return null;
     }
