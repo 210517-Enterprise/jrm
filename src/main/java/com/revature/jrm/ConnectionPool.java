@@ -10,20 +10,17 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-
 public class ConnectionPool {
     private static final ConnectionPool connection_factory = new ConnectionPool();
     private BasicDataSource ds;
-    
-    private static final Logger log = LoggerFactory.getLogger(ConnectionPool.class);
 
+    private static final Logger log = LoggerFactory.getLogger(ConnectionPool.class);
 
     static {
         try {
             Class.forName("org.postgresql.Driver");
-        }catch (ClassNotFoundException cnfe) {
-            log.error("Failed to establish a connection with the Database");
+        } catch (ClassNotFoundException e) {
+            log.error("Failed to establish a connection with the Database: " + e);
         }
     }
 
@@ -42,16 +39,17 @@ public class ConnectionPool {
             ds.setDefaultAutoCommit(false);
             ds.setMaxIdle(10);
             ds.setMaxOpenPreparedStatements(100);
-            log.info("Database connection extablished!");
-        }catch(IOException ioe) {
+            log.info("Database connection established!");
+        } catch (IOException e) {
             System.out.println("sorry, no application properties file found.");
-            log.error("Failed to establish a connection with the Database");
+            log.error("Failed to establish a connection with the Database: " + e);
             //A place to log errors
         }
     }
 
     /**
      * Method to retrieve current static instance of Utils.ConnectionFactory class.
+     *
      * @return current instance of Utils.ConnectionFactory object.
      */
     public static ConnectionPool getInstance() {
@@ -60,13 +58,14 @@ public class ConnectionPool {
 
     /**
      * Method to retrieve a connection to application database.
+     *
      * @return Connection object.
      */
-    public Connection getConnection () {
+    public Connection getConnection() {
         try {
             return ds.getConnection();
-        }catch (SQLException sqle) {
-        	log.error("Failed to establish a connection with the Database");
+        } catch (SQLException e) {
+            log.error("Failed to establish a connection with the Database: " + e);
         }
         return null;
     }
