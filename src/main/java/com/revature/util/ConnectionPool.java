@@ -1,4 +1,4 @@
-package com.revature.jrm;
+package com.revature.util;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -27,7 +27,7 @@ public class ConnectionPool {
     /**
      * private constructor for Utils.ConnectionFactory class.
      */
-    ConnectionPool() {
+    public ConnectionPool() {
         try {
             Properties props = new Properties();
             props.load(new FileReader("src/main/resources/application.properties"));

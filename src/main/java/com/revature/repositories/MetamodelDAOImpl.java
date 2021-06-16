@@ -1,8 +1,10 @@
-package com.revature.jrm;
+package com.revature.repositories;
 
+import java.lang.reflect.Type;
 import java.util.List;
+import com.revature.util.ConnectionPool;
 
-public abstract class Model<T> {
+public abstract class MetamodelDAOImpl<T> implements MetamodelDAO{
     /**
      * The connection pool used to get connections for the CRUD operations
      */
@@ -10,7 +12,6 @@ public abstract class Model<T> {
     /**
      * The transaction manager is used to alter behavior if a transaction is in progress
      */
-    private static TransactionManager transactionManager = new TransactionManager();
 
     /**
      * Returns an object from the database with the given id

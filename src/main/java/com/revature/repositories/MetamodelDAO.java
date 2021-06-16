@@ -1,7 +1,7 @@
-package com.revature.jrm;
+package com.revature.repositories;
 
-public class TransactionManager {
-    private static ConnectionPool pool = new ConnectionPool();
+
+public interface MetamodelDAO {
 
     public static void begin() {}
     public static void commit() {}
