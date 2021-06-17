@@ -1,6 +1,6 @@
 package com.revature.jrm;
 
-public abstract class Model<T> {
+public abstract class Model {
     /**
      * Saves the current object to database
      */
