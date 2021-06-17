@@ -29,8 +29,10 @@ public class Record {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == Column.class) {
                     Column col = (Column) a;
+                    field.setAccessible(true);
                     field.set(obj, rs.getObject(col.columnName()));
                 } else if (a.annotationType() == PrimaryKey.class) {
+                    field.setAccessible(true);
                     PrimaryKey pk = (PrimaryKey) a;
                     field.set(obj, rs.getObject(pk.columnName()));
                 }
@@ -39,48 +41,11 @@ public class Record {
 
         return obj;
     }
-    
-    /**
-     * Returns boolean value for whether the query to create the table has ran
-     *
-     * @return boolean whether query was successful
-     */
-    public static <T> boolean createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
-        Entity entity = type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; "
-        		+ "create table " + entity.tableName() + ";");
-  
-        if (stmt.executeUpdate() != 0) 
-			return true;
-		else
-			return false;
-
-        
-    }
-    
-    /**
-     * Returns boolean value for whether the query to drop the table has ran
-     *
-     * @return boolean whether query was successful
-     */
-    public static <T> boolean dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
-        Entity entity = type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; ");
-  
-        if (stmt.executeUpdate() != 0) 
-			return true;
-		else
-			return false;
-
-        
-    }
 
     /**
      * Returns an object from the database with the given id
      *
-     * @param id the id of the row entry
+     * @param id the id of the entry
      * @return the requested entry
      */
     public static <T> T get(Class<T> type, int id) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
@@ -132,5 +97,42 @@ public class Record {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"
+    }
+    
+    /**
+     * Returns boolean value for whether the query to create the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> boolean createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; "
+        		+ "create table " + entity.tableName() + ";");
+
+        if (stmt.executeUpdate() != 0) 
+			return true;
+		else
+			return false;
+
+
+    }
+
+    /**
+     * Returns boolean value for whether the query to drop the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> boolean dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; ");
+
+        if (stmt.executeUpdate() != 0) 
+			return true;
+		else
+			return false;
+
+
     }
 }
