@@ -39,17 +39,55 @@ public class Record {
 
         return obj;
     }
+    
+    /**
+     * Returns boolean value for whether the query to create the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> boolean createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; "
+        		+ "create table " + entity.tableName() + ";");
+  
+        if (stmt.executeUpdate() != 0) 
+			return true;
+		else
+			return false;
+
+        
+    }
+    
+    /**
+     * Returns boolean value for whether the query to drop the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> boolean dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; ");
+  
+        if (stmt.executeUpdate() != 0) 
+			return true;
+		else
+			return false;
+
+        
+    }
 
     /**
      * Returns an object from the database with the given id
      *
-     * @param id the id of the entity
-     * @return the requested entity
+     * @param id the id of the row entry
+     * @return the requested entry
      */
     public static <T> T get(Class<T> type, int id) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
+        PrimaryKey primarykey = type.getDeclaredAnnotation(PrimaryKey.class);
         Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where id = ?");
+        PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " + primarykey.columnName() + " = ?");
         stmt.setInt(1, id);
         ResultSet rs = stmt.executeQuery();
 
