@@ -29,8 +29,10 @@ public class Record {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == Column.class) {
                     Column col = (Column) a;
+                    field.setAccessible(true);
                     field.set(obj, rs.getObject(col.columnName()));
                 } else if (a.annotationType() == PrimaryKey.class) {
+                    field.setAccessible(true);
                     PrimaryKey pk = (PrimaryKey) a;
                     field.set(obj, rs.getObject(pk.columnName()));
                 }
