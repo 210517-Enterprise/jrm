@@ -25,6 +25,7 @@ public class Record {
      */
     private static <T> T objFromResultSet(Class<T> type, ResultSet rs) throws InstantiationException, IllegalAccessException, SQLException {
         T obj = type.newInstance();
+
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == Column.class) {
@@ -48,7 +49,7 @@ public class Record {
      * @param id the id of the entity
      * @return the requested entity
      */
-    public static <T> T get(Class<T> type, int id) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+    public static <T> T get(Class<T> type, int id) throws IllegalAccessException, InstantiationException, SQLException {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
         Connection conn = ConnectionPool.getConnection();
         PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where id = ?");
@@ -91,8 +92,10 @@ public class Record {
 
     /**
      * Deletes all entities of the model's type
+     *
+     * @param type the model class to delete
      */
-    public static void destroy_all() {
+    public static <T> void destroy_all(Class<T> type) {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"

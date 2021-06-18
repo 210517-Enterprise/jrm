@@ -24,7 +24,7 @@ public class ConnectionPool {
             ds.setUsername(props.getProperty("username"));
             ds.setPassword(props.getProperty("password"));
             ds.setMinIdle(5);
-            ds.setDefaultAutoCommit(false);
+            ds.setDefaultAutoCommit(true);
             ds.setMaxIdle(10);
             ds.setMaxOpenPreparedStatements(100);
             log.info("Database connection established!");
@@ -33,6 +33,15 @@ public class ConnectionPool {
             log.error("Failed to establish a connection with the Database: " + e);
             //A place to log errors
         }
+    }
+
+    /**
+     * Replaces datasource for connection pool
+     *
+     * @param bds the new datasource
+     */
+    public static void setDataSource(BasicDataSource bds) {
+        ds = bds;
     }
 
     /**
