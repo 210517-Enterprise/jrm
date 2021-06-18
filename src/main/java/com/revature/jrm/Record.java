@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Record {
@@ -127,6 +128,54 @@ public class Record {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
         Connection conn = ConnectionPool.getConnection();
         PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; ");
+
+        if (stmt.executeUpdate() != 0) 
+			return true;
+		else
+			return false;
+
+
+    }
+    
+    /**
+     * Returns boolean value for whether the query to alter the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> boolean alterTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        PrimaryKey primarykey = type.getDeclaredAnnotation(PrimaryKey.class);
+        
+        String columns = "";
+        for (Field field : type.getDeclaredFields()) {
+        	if(field.getType() == Integer.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + " Integer not null, ";
+	                }
+	            }
+        	}else if(field.getType() == String.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + " varchar(30) not null, ";
+	                }
+	            }
+        	}
+        }
+        
+        String columns_altered = "";
+        for(int i=0; i<columns.length()-2;i++) {
+        	columns_altered += columns.charAt(i); 
+        }
+        
+        
+        
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("alter table" + entity.tableName() + "( " + primarykey.columnName() + " serial primary key, "+ columns_altered + " );");
 
         if (stmt.executeUpdate() != 0) 
 			return true;
