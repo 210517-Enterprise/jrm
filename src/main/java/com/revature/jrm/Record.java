@@ -93,11 +93,17 @@ public class Record {
     /**
      * Deletes all entities of the model's type
      */
-    public static void destroy_all() {
+    public static void destroy_all(Class type, int id) throws SQLException {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"
+    	Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("DELETE * FROM " + entity.tableName());
+        stmt.setInt(1, id);
+        ResultSet rs = stmt.executeQuery();
     }
+
     
     /**
      * Returns boolean value for whether the query to create the table has ran
