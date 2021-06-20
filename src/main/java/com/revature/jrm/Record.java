@@ -12,6 +12,7 @@ import java.util.List;
 import com.revature.annotations.Column;
 import com.revature.annotations.Entity;
 import com.revature.annotations.PrimaryKey;
+import com.revature.exceptions.MultiplePrimaryKeyException;
 
 public class Record {
     /**
@@ -185,12 +186,23 @@ public class Record {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
         PrimaryKey primarykey = type.getDeclaredAnnotation(PrimaryKey.class);
         
+        int number_of_primarykeys = 0;
         String columns = "";
         for (Field field : type.getDeclaredFields()) {
         	if(field.getType() == Integer.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                if (a.annotationType() == Column.class) {
-	                    Column col = (Column) a;
+	                if (a.annotationType() == PrimaryKey.class) {
+	                	if(number_of_primarykeys == 1) {
+	                		throw new MultiplePrimaryKeyException("Only one field can be annotated with @PrimaryKey.");
+	                	}
+	                    field.setAccessible(true);
+	                    number_of_primarykeys++;
+	                }
+	            }
+        	}else if(field.getType() == Integer.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == PrimaryKey.class) {
+	                    PrimaryKey col = (PrimaryKey) a;
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + " Integer not null, ";
 	                }
