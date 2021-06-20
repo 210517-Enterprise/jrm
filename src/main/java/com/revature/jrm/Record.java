@@ -1,17 +1,17 @@
 package com.revature.jrm;
 
-import com.revature.annotations.Column;
-import com.revature.annotations.Entity;
-import com.revature.annotations.PrimaryKey;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
+
+import com.revature.annotations.Column;
+import com.revature.annotations.Entity;
+import com.revature.annotations.PrimaryKey;
 
 public class Record {
     /**
@@ -82,13 +82,34 @@ public class Record {
      *
      * @param query the value to put in the where clause
      * @return list of objects that match
+     * @throws SQLException 
+     * @throws IllegalAccessException 
+     * @throws InstantiationException 
      */
-    public static <T> List<T> where(String query) {
+    public static <T> List<T> where(Class<T> type, String column_name, String requirement) throws SQLException, InstantiationException, IllegalAccessException {
         // 1. Use reflection API to get the table name from annotations
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
+    	Connection conn = ConnectionPool.getConnection();
         // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
+    	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where  ? = ?");
+    	
+    	stmt.setString(1, column_name);
+    	stmt.setString(2, requirement);
+    	
         // 4. Create objects and return the list
-        return null;
+		ResultSet rs = stmt.executeQuery();			// Queries the database
+		
+		List<T> results = new ArrayList<>();
+		// So long as the ResultSet actually contains results...
+		while (rs.next()) {
+			
+			T t = objFromResultSet(type, rs);
+			
+			results.add(t);
+			
+		}
+        return results;
     }
 
     /**
@@ -175,7 +196,9 @@ public class Record {
         
         
         Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("alter table" + entity.tableName() + "( " + primarykey.columnName() + " serial primary key, "+ columns_altered + " );");
+        PreparedStatement stmt = conn.prepareStatement("alter table" + entity.tableName() + "( " + primarykey.columnName() + 
+        		" serial primary key, "+ columns_altered 
+        		+ " );");
 
         if (stmt.executeUpdate() != 0) 
 			return true;
