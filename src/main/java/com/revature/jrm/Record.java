@@ -68,13 +68,31 @@ public class Record {
      * Returns a list of all objects of the model's type
      *
      * @return the list of all objects
+     * @throws SQLException 
+     * @throws IllegalAccessException 
+     * @throws InstantiationException 
      */
-    public static <T> List<T> all(Class<T> type) {
+    public static <T> List<T> all(Class<T> type) throws SQLException, InstantiationException, IllegalAccessException {
         // 1. Use reflection API to get the table name from annotations
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
+    	Connection conn = ConnectionPool.getConnection();
         // 3. Query for all entities
+    	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " ; ");
+    	
+    	ResultSet rs = stmt.executeQuery();			// Queries the database
+    	
         // 4. Create objects and return the list
-        return null;
+    	List<T> results = new ArrayList<>();
+		// So long as the ResultSet actually contains results...
+		while (rs.next()) {
+			
+			T t = objFromResultSet(type, rs);
+			
+			results.add(t);
+			
+		}
+        return results;
     }
 
     /**
