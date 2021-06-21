@@ -145,67 +145,32 @@ public class Record {
      *
      * @return boolean whether query was successful
      */
-    public static <T> boolean createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+    public static <T> void createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; "
-        		+ "create table " + entity.tableName() + ";");
-
-        if (stmt.executeUpdate() != 0) 
-			return true;
-		else
-			return false;
-
-
-    }
-
-    /**
-     * Returns boolean value for whether the query to drop the table has ran
-     *
-     * @return boolean whether query was successful
-     */
-    public static <T> boolean dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
-        Entity entity = type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("drop table if exists" + entity.tableName() + " cascade; ");
-
-        if (stmt.executeUpdate() != 0) 
-			return true;
-		else
-			return false;
-
-
-    }
     
-    /**
-     * Returns boolean value for whether the query to alter the table has ran
-     *
-     * @return boolean whether query was successful
-     */
-    public static <T> boolean alterTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
-        Entity entity = type.getDeclaredAnnotation(Entity.class);
-        PrimaryKey primarykey = type.getDeclaredAnnotation(PrimaryKey.class);
-        
-        int number_of_primarykeys = 0;
+        int number_of_primarykeys = 0, counter=0;
         String columns = "";
         for (Field field : type.getDeclaredFields()) {
+        	System.out.println(field);
         	if(field.getType() == Integer.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                if (a.annotationType() == PrimaryKey.class) {
 	                	if(number_of_primarykeys == 1) {
 	                		throw new MultiplePrimaryKeyException("Only one field can be annotated with @PrimaryKey.");
 	                	}
+	                	PrimaryKey col = (PrimaryKey) a;
 	                    field.setAccessible(true);
+	                    columns += col.columnName() + " serial primary key, ";
 	                    number_of_primarykeys++;
-	                }
-	            }
-        	}else if(field.getType() == Integer.class) {
-	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                if (a.annotationType() == PrimaryKey.class) {
-	                    PrimaryKey col = (PrimaryKey) a;
+	                    counter++;
+	                    System.out.println("Proccessing to pk integer class " + counter );
+	                }else if(a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + " Integer not null, ";
-	                }
+	                    counter++;
+	                    System.out.println("Proccessing a regular integer class " + counter);
+	                }  
 	            }
         	}else if(field.getType() == String.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
@@ -213,6 +178,8 @@ public class Record {
 	                    Column col = (Column) a;
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + " varchar(30) not null, ";
+	                    counter++;
+	                    System.out.println("Proccessing a field of String class " + counter);
 	                }
 	            }
         	}
@@ -223,18 +190,27 @@ public class Record {
         	columns_altered += columns.charAt(i); 
         }
         
-        
-        
         Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("alter table" + entity.tableName() + "( " + primarykey.columnName() + 
-        		" serial primary key, "+ columns_altered 
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; "
+        		+ "create table " + entity.tableName() + "( "+ columns_altered 
         		+ " );");
 
-        if (stmt.executeUpdate() != 0) 
-			return true;
-		else
-			return false;
+        stmt.execute();
 
 
     }
+
+    /**
+     * Returns boolean value for whether the query to drop the table has ran
+     *
+     * @return boolean whether query was successful
+     */
+    public static <T> void dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; ");
+        stmt.execute();
+
+    }
+    
 }
