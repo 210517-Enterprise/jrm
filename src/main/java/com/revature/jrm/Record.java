@@ -81,7 +81,7 @@ public class Record {
      * @throws InstantiationException 
      */
     public static <T> List<T> all(Class<T> type) throws SQLException, InstantiationException, IllegalAccessException {
-    	log.info("Running query to show all entries");
+    	log.info("Running query to return all entries");
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
@@ -151,11 +151,6 @@ public class Record {
         // 3. Delete all objects e.g. "delete from users"
     }
     
-    /**
-     * Returns boolean value for whether the query to create the table has ran
-     *
-     * @return boolean whether query was successful
-     */
     public static <T> void createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	log.info("Running query to create table");
     	
@@ -213,11 +208,7 @@ public class Record {
 
     }
 
-    /**
-     * Returns boolean value for whether the query to drop the table has ran
-     *
-     * @return boolean whether query was successful
-     */
+    
     public static <T> void dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	log.info("Running query to drop table");
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
@@ -225,6 +216,66 @@ public class Record {
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; ");
         stmt.execute();
 
+    }
+    
+    public static <T> void insert(Class<T> type, List<Object> columns_generic) throws SQLException {
+    	log.info("Running query to insert an entry");
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
+    	Connection conn = ConnectionPool.getConnection();
+    	
+    	int counter=0;
+    	String columns = "";
+        for (Field field : type.getDeclaredFields()) {
+        	System.out.println(field);
+        	if(field.getType() == Integer.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                	 if(a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + ", ";
+	                    counter++;
+	                    System.out.println("Proccessing a regular integer class " + counter);
+	                }
+	            }
+        	}else if(field.getType() == String.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + ", ";
+	                    counter++;
+	                    System.out.println("Proccessing a field of String class " + counter);
+	                }
+	            }
+        	}
+        }
+    	
+        String altered_columns = "";
+        for(int i=0;i< columns.length()-2;i++) {
+        	altered_columns += columns.charAt(i);
+        }
+        
+        String values = " ? ";
+        for(int i=0; i<counter-1;i++) {
+        	values += ", ? ";
+        }
+        
+        
+        PreparedStatement stmt = conn.prepareStatement("insert into " + entity.tableName() + "( " + altered_columns + ") values ( " + values + " );");
+        
+        int number = 1;
+        for(Object t: columns_generic) {
+        	if(t.getClass() == Integer.class) {
+        		stmt.setInt(number,  (int) t);
+        		number++;
+        	}else if(t.getClass() == String.class) {
+        		stmt.setString(number, (String) t);
+        		number++;
+        	}
+        }
+        
+        stmt.execute();
+    	
     }
     
 }
