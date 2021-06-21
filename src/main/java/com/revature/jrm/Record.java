@@ -9,12 +9,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.revature.annotations.Column;
 import com.revature.annotations.Entity;
 import com.revature.annotations.PrimaryKey;
 import com.revature.exceptions.MultiplePrimaryKeyException;
 
 public class Record {
+	
+	private static final Logger log = LoggerFactory.getLogger(Record.class);
     /**
      * Returns an object from the specified class using results from ResultSet
      *
@@ -59,8 +64,10 @@ public class Record {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
+        	log.info("Retrieved entry from database");
             return objFromResultSet(type, rs);
         } else {
+        	log.info("Failed to retrieve entry from database");
             return null;
         }
     }
@@ -74,6 +81,7 @@ public class Record {
      * @throws InstantiationException 
      */
     public static <T> List<T> all(Class<T> type) throws SQLException, InstantiationException, IllegalAccessException {
+    	log.info("Running query to show all entries");
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
@@ -93,6 +101,7 @@ public class Record {
 			results.add(t);
 			
 		}
+	
         return results;
     }
 
@@ -106,6 +115,7 @@ public class Record {
      * @throws InstantiationException 
      */
     public static <T> List<T> where(Class<T> type, String column_name, String requirement) throws SQLException, InstantiationException, IllegalAccessException {
+    	log.info("Running search to find entries");
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
@@ -128,6 +138,7 @@ public class Record {
 			results.add(t);
 			
 		}
+		
         return results;
     }
 
@@ -146,6 +157,8 @@ public class Record {
      * @return boolean whether query was successful
      */
     public static <T> void createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+    	log.info("Running query to create table");
+    	
         Entity entity = type.getDeclaredAnnotation(Entity.class);
     
         int number_of_primarykeys = 0, counter=0;
@@ -206,7 +219,8 @@ public class Record {
      * @return boolean whether query was successful
      */
     public static <T> void dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
-        Entity entity = type.getDeclaredAnnotation(Entity.class);
+    	log.info("Running query to drop table");
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
         Connection conn = ConnectionPool.getConnection();
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; ");
         stmt.execute();
