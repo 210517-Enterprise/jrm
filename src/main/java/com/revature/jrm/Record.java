@@ -169,7 +169,7 @@ public class Record {
         String columns = "";
         for (Field field : type.getDeclaredFields()) {
         	System.out.println(field);
-        	if(field.getType() == Integer.class) {
+        	if(field.getType() == int.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                if (a.annotationType() == PrimaryKey.class) {
 	                	if(number_of_primarykeys == 1) {
@@ -236,7 +236,7 @@ public class Record {
     	String columns = "";
         for (Field field : type.getDeclaredFields()) {
         	System.out.println(field);
-        	if(field.getType() == Integer.class) {
+        	if(field.getType() == int.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                	 if(a.annotationType() == Column.class) {
 	                    Column col = (Column) a;
@@ -296,7 +296,7 @@ public class Record {
     	String columns = "", id_column="";
         for (Field field : type.getDeclaredFields()) {
         	System.out.println(field);
-        	if(field.getType() == Integer.class) {
+        	if(field.getType() == int.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                	 if(a.annotationType() == Column.class) {
 	                    Column col = (Column) a;
