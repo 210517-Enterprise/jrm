@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,6 +21,9 @@ import com.revature.exceptions.MultiplePrimaryKeyException;
 public class Record {
 	
 	private static final Logger log = LoggerFactory.getLogger(Record.class);
+	
+	private static HashMap<String, Object> cache = new HashMap<String, Object>();
+	private static HashMap<String, List<Object>> cache_list = new HashMap<String, List<Object>>();
     /**
      * Returns an object from the specified class using results from ResultSet
      *
@@ -56,6 +60,12 @@ public class Record {
      * @return the requested entry
      */
     public static <T> T get(Class<T> type, int id) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
+    	String key = type + "," + id;
+    	if(cache.containsKey(key)) {
+    		System.out.println("id = "+ id + " exist in cache");
+    		return  (T) cache.get(key);
+    	}
+    	
         Entity entity = type.getDeclaredAnnotation(Entity.class);
         String id_column = "";
         for (Field field : type.getDeclaredFields()) {
@@ -74,13 +84,15 @@ public class Record {
 
         if (rs.next()) {
         	log.info("Retrieved entry from database");
+        	T value = objFromResultSet(type, rs);
+        	cache.put(key,value );
             return objFromResultSet(type, rs);
         } else {
         	log.info("Failed to retrieve entry from database");
             return null;
         }
     }
-
+    
     /**
      * Returns a list of all objects of the model's type
      *
@@ -90,6 +102,12 @@ public class Record {
      * @throws InstantiationException 
      */
     public static <T> List<T> all(Class<T> type) throws SQLException, InstantiationException, IllegalAccessException {
+    	
+    	String key = type + "," + "00000";
+    	if(cache_list.containsKey(key)) {
+    		System.out.println("All the results from previous query for ("+ type.toString() + ") exist in cache");
+    		return   (List<T>) cache_list.get(key);
+    	}
     	log.info("Running query to return all entries");
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
@@ -110,7 +128,8 @@ public class Record {
 			results.add(t);
 			
 		}
-	
+		
+    	cache_list.put(key,  (List<Object>) results);
         return results;
     }
 
@@ -124,16 +143,21 @@ public class Record {
      * @throws InstantiationException 
      */
     public static <T> List<T> where(Class<T> type, String column_name, String requirement) throws SQLException, InstantiationException, IllegalAccessException {
+    	String key = type + "," + column_name + "," + requirement;
+    	if(cache_list.containsKey(key)) {
+    		System.out.println("All the results from previous query for ("+ column_name +") where the entry is ("+ requirement +") exist in cache");
+    		return  (List<T>) cache_list.get(key);
+    	}
     	log.info("Running search to find entries");
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
     	Connection conn = ConnectionPool.getConnection();
         // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
-    	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where  ? = ?");
+    	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " +column_name+ " = ?");
     	
-    	stmt.setString(1, column_name);
-    	stmt.setString(2, requirement);
+    	//stmt.setString(1, column_name);
+    	stmt.setString(1, requirement);
     	
         // 4. Create objects and return the list
 		ResultSet rs = stmt.executeQuery();			// Queries the database
@@ -147,7 +171,39 @@ public class Record {
 			results.add(t);
 			
 		}
+		cache_list.put(key,(List<Object>) results);
+        return results;
+    }
+    
+    public static <T> List<T> where(Class<T> type, String column_name, int requirement) throws SQLException, InstantiationException, IllegalAccessException {
+    	String key = type + "," + column_name + "," + requirement;
+    	if(cache_list.containsKey(key)) {
+    		System.out.println("All the results from previous query for ("+ column_name +") where the entry is ("+ requirement +") exist in cache");
+    		return  (List<T>) cache_list.get(key);
+    	}
+    	log.info("Running search to find entries");
+        // 1. Use reflection API to get the table name from annotations
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
+        // 2. Get connection from connection pool
+    	Connection conn = ConnectionPool.getConnection();
+        // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
+    	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " +column_name+" = ?");
+    	
+    	stmt.setInt(1, requirement);
+    	
+        // 4. Create objects and return the list
+		ResultSet rs = stmt.executeQuery();			// Queries the database
 		
+		List<T> results = new ArrayList<>();
+		// So long as the ResultSet actually contains results...
+		while (rs.next()) {
+			
+			T t = objFromResultSet(type, rs);
+			
+			results.add(t);
+			
+		}
+		cache_list.put(key,(List<Object>) results);
         return results;
     }
 
