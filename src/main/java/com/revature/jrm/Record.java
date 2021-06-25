@@ -36,6 +36,7 @@ public class Record {
      */
     private static <T> T objFromResultSet(Class<T> type, ResultSet rs) throws InstantiationException, IllegalAccessException, SQLException {
         T obj = type.newInstance();
+
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == Column.class) {
@@ -59,13 +60,14 @@ public class Record {
      * @param id the id of the entry
      * @return the requested entry
      */
+
     public static <T> T get(Class<T> type, int id) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	String key = type + "," + id;
     	if(cache.containsKey(key)) {
     		System.out.println("id = "+ id + " exist in cache");
     		return  (T) cache.get(key);
     	}
-    	
+  
         Entity entity = type.getDeclaredAnnotation(Entity.class);
         String id_column = "";
         for (Field field : type.getDeclaredFields()) {
@@ -209,6 +211,8 @@ public class Record {
 
     /**
      * Deletes all entities of the model's type
+     *
+     * @param type the model class to delete
      */
     public static void destroy_all(Class type) throws SQLException {
         // 1. Use reflection API to get the table name from annotations
