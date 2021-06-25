@@ -1,5 +1,12 @@
 package com.revature.jrm;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import com.revature.annotations.Entity;
+
 public abstract class Model {
     /**
      * Saves the current object to database
@@ -17,9 +24,16 @@ public abstract class Model {
     /**
      * Deletes the current object from the database
      */
-    public void destroy() {
-        // 1. Use reflection API to get the table name from annotations
-        // 2. Get connection from connection pool
-        // 3. Delete using where statement with id where id equals this object's id
+
+    public void destroy(Class type, int id) throws SQLException {
+    	
+    	Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM " + entity.tableName() + " WHERE id = ?");
+        stmt.setInt(1, id);
+        ResultSet rs = stmt.executeQuery();
+   
+    	
     }
+
 }
