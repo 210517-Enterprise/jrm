@@ -91,10 +91,10 @@ public class RecordTest {
     }
 
     @Test
-    public void destroyAll() throws SQLException {
+    public void deleteAll() throws SQLException {
         int id1 = insertExample("foo");
         int id2 = insertExample("bar");
-        Record.destroyAll(Example.class);
+        Record.deleteAll(Example.class);
 
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();
