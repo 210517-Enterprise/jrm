@@ -54,7 +54,7 @@ public class RecordTest {
     public static void createExampleTable() throws SQLException {
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();
-        stmt.execute("create table if not exists example (id serial primary key, foo varchar(64))");
+        stmt.execute("create table if not exists example (id serial primary key, foo varchar(64), bar integer)");
         conn.close();
     }
 
@@ -98,7 +98,7 @@ public class RecordTest {
     public void deleteAll() throws SQLException {
         int id1 = insertExample("foo", 42);
         int id2 = insertExample("bar", 42);
-        Record.deleteAll(Example.class);
+        Record.destroyAll(Example.class);
 
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();
@@ -152,6 +152,7 @@ public class RecordTest {
             assertEquals(bar, ex.bar);
         }
 
+
         ex.foo = "zzz";
         ex.bar = 42;
         Record.save(ex);
@@ -180,5 +181,24 @@ public class RecordTest {
         assertFalse(Record.recordExists(ex));
         ex.id = insertExample("bar", 42);
         assertTrue(Record.recordExists(ex));
+    }
+
+    @Test
+    public void destroy() throws SQLException, IllegalAccessException {
+        int id = insertExample("bar", 42);
+        Example ex = new Example();
+        ex.id = id;
+        ex.foo = "bar";
+        ex.bar = 42;
+
+        Record.destroy(ex);
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from example where id = " + id);
+
+        if (rs.next()) {
+            fail();
+        }
     }
 }

@@ -212,7 +212,7 @@ public class Record {
      *
      * @param type the model class to delete
      */
-    public static void deleteAll(Class type) throws SQLException {
+    public static <T> void destroyAll(Class<T> type) throws SQLException {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"
@@ -222,7 +222,30 @@ public class Record {
         stmt.execute();
     }
 
-    
+    public static <T> void destroy(T obj) throws SQLException, IllegalAccessException {
+        Class<?> type = obj.getClass();
+        Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
+        Connection conn = ConnectionPool.getConnection();
+
+        String primaryKey = "";
+        int id = -1;
+        for (Field field : type.getDeclaredFields()) {
+            for (Annotation a : field.getDeclaredAnnotations()) {
+                if (a.annotationType() == PrimaryKey.class) {
+                    PrimaryKey pk = (PrimaryKey) a;
+                    primaryKey = pk.columnName();
+                    id = field.getInt(obj);
+                    break;
+                }
+            }
+        }
+
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM " + entity.tableName() + " WHERE id = ?");
+        stmt.setInt(1, id);
+        stmt.execute();
+        conn.close();
+    }
+
     public static <T> void createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	log.info("Running query to create table");
     	
