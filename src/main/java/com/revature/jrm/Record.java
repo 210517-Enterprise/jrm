@@ -2,13 +2,11 @@ package com.revature.jrm;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -290,128 +288,135 @@ public class Record {
         stmt.execute();
 
     }
-    
-    public static <T> void insert(Class<T> type, List<Object> columns_generic) throws SQLException {
-    	log.info("Running query to insert an entry");
-    	Entity entity = type.getDeclaredAnnotation(Entity.class);
-    	Connection conn = ConnectionPool.getConnection();
-    	
-    	int counter=0;
-    	String columns = "";
-        for (Field field : type.getDeclaredFields()) {
-        	System.out.println(field);
-        	if(field.getType() == int.class) {
-	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                	 if(a.annotationType() == Column.class) {
-	                    Column col = (Column) a;
-	                    field.setAccessible(true);
-	                    columns += col.columnName() + ", ";
-	                    counter++;
-	                    System.out.println("Proccessing a regular integer class " + counter);
-	                }
-	            }
-        	}else if(field.getType() == String.class) {
-	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                if (a.annotationType() == Column.class) {
-	                    Column col = (Column) a;
-	                    field.setAccessible(true);
-	                    columns += col.columnName() + ", ";
-	                    counter++;
-	                    System.out.println("Proccessing a field of String class " + counter);
-	                }
-	            }
-        	}
-        }
-    	
-        String altered_columns = "";
-        for(int i=0;i< columns.length()-2;i++) {
-        	altered_columns += columns.charAt(i);
-        }
-        
-        String values = " ? ";
-        for(int i=0; i<counter-1;i++) {
-        	values += ", ? ";
-        }
-        
-        
-        PreparedStatement stmt = conn.prepareStatement("insert into " + entity.tableName() + "( " + altered_columns + ") values ( " + values + " );");
-        
-        int number = 1;
-        for(Object t: columns_generic) {
-        	if(t.getClass() == Integer.class) {
-        		stmt.setInt(number,  (int) t);
-        		number++;
-        	}else if(t.getClass() == String.class) {
-        		stmt.setString(number, (String) t);
-        		number++;
-        	}
-        }
-        
-        stmt.execute();
-    	
-    }
-    
-    public static <T> void update(Class<T> type, List<Object> columns_generic, int id) throws SQLException {
-    	log.info("Running query to insert an entry");
-    	Entity entity = type.getDeclaredAnnotation(Entity.class);
-    	Connection conn = ConnectionPool.getConnection();
-    	
-    	int counter=0;
-    	String columns = "", id_column="";
-        for (Field field : type.getDeclaredFields()) {
-        	System.out.println(field);
-        	if(field.getType() == int.class) {
-	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                	 if(a.annotationType() == Column.class) {
-	                    Column col = (Column) a;
-	                    field.setAccessible(true);
-	                    columns += col.columnName() + "=?, ";
-	                    counter++;
-	                    System.out.println("Proccessing a regular integer class " + counter);
-	                }
-	                	 if(a.annotationType() == PrimaryKey.class) {
-	 	                    PrimaryKey col = (PrimaryKey) a;
-	 	                    field.setAccessible(true);
-	 	                    id_column += col.columnName();
-	 	                }
-	            }
-        	}else if(field.getType() == String.class) {
-	            for (Annotation a : field.getDeclaredAnnotations()) {
-	                if (a.annotationType() == Column.class) {
-	                    Column col = (Column) a;
-	                    field.setAccessible(true);
-	                    columns += col.columnName() + "=?, ";
-	                    counter++;
-	                    System.out.println("Proccessing a field of String class " + counter);
-	                }
-	            }
-        	}
-        }
-    	
-        String altered_columns = "";
-        for(int i=0;i< columns.length()-2;i++) {
-        	altered_columns += columns.charAt(i);
-        }
-        
-        
-        PreparedStatement stmt = conn.prepareStatement("update " + entity.tableName() + " set " + altered_columns + "  where " + id_column + "=? ");
-        
-        int number = 1;
-        for(Object t: columns_generic) {
-        	if(t.getClass() == Integer.class) {
-        		stmt.setInt(number,  (int) t);
-        		number++;
-        	}else if(t.getClass() == String.class) {
-        		stmt.setString(number, (String) t);
-        		number++;
-        	}
-        }
-        
-        
-        stmt.setInt(counter+1, id);
-        
-        stmt.execute();
-    	
+
+    public static <T> boolean tableExists(Class<T> type) throws SQLException {
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+
+        String query = "select exists ( " +
+                "select from information_schema.tables " +
+                "where table_name = '" + entity.tableName() + "')";
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+
+        boolean exists = rs.next() && rs.getBoolean(1);
+        conn.close();
+        return exists;
     }
 
+    public static <T> boolean recordExists(T obj) throws SQLException, IllegalAccessException, NoSuchFieldException, InstantiationException {
+        Class<?> type = obj.getClass();
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+
+        if (!tableExists(type)) {
+            createTable(type);
+            return false;
+        }
+
+        // Get the column name for the entity's primary key
+        String primaryKey = "";
+        int id = -1;
+        for (Field field : type.getDeclaredFields()) {
+            for (Annotation a : field.getDeclaredAnnotations()) {
+                if (a.annotationType() == PrimaryKey.class) {
+                    PrimaryKey pk = (PrimaryKey) a;
+                    primaryKey = pk.columnName();
+                    id = field.getInt(obj);
+                    break;
+                }
+            }
+        }
+
+        String query = "select exists ( " +
+                "select from " + entity.tableName() + " " +
+                "where " + primaryKey + "=" + id + ")";
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(query);
+
+        boolean exists = rs.next() && rs.getBoolean(1);
+        conn.close();
+        return exists;
+    }
+
+    public static <T> void save(T obj) throws SQLException, IllegalAccessException, NoSuchFieldException, InstantiationException {
+    	log.info("Running query to insert an entry");
+
+    	// Create database table for entity if it doesn't exist
+        Class<?> type = obj.getClass();
+
+        if (!tableExists(type)) {
+            createTable(type);
+        }
+
+        List<String> columnNames = new ArrayList<>();
+        List<Object> columnValues = new ArrayList<>();
+
+        // Build string of column names and placeholders for values
+        for (Field field : type.getDeclaredFields()) {
+            for (Annotation a : field.getDeclaredAnnotations()) {
+                if (a.annotationType() == Column.class) {
+                    Column col = (Column) a;
+                    columnNames.add(col.columnName());
+                    columnValues.add(field.get(obj));
+                }
+            }
+        }
+
+        // Get primary key column name
+        Field primaryKeyField = null;
+        String primaryKey = "";
+        int id = -1;
+        for (Field field : type.getDeclaredFields()) {
+            for (Annotation a : field.getDeclaredAnnotations()) {
+                if (a.annotationType() == PrimaryKey.class) {
+                    PrimaryKey pk = (PrimaryKey) a;
+                    primaryKey = pk.columnName();
+                    id = field.getInt(obj);
+                    primaryKeyField = field;
+                    break;
+                }
+            }
+        }
+
+        // Build the query string and PreparedStatement
+        Entity entity = type.getDeclaredAnnotation(Entity.class);
+        StringBuilder query = new StringBuilder();
+        if (recordExists(obj)) {
+            query.append(String.format("update %s set ", entity.tableName()));
+
+            for (int i = 0; i < columnNames.size(); i++) {
+                query.append(String.format("%s = ?", columnNames.get(i)));
+                if (i < columnNames.size() - 1) {
+                    query.append(", ");
+                }
+            }
+
+            query.append(String.format(" where %s = %s returning %s", primaryKey, id, primaryKey));
+        } else {
+            String columns = String.join(",", columnNames);
+            String parameters = String.join(",", columnNames.stream().map((s) -> "?").collect(Collectors.toList()));
+            query.append(String.format("insert into %s (%s) values (%s) returning %s", entity.tableName(), columns, parameters, primaryKey));
+        }
+
+        Connection conn = ConnectionPool.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query.toString());
+
+        // Set column values in PreparedStatement
+        for (int i = 1; i <= columnValues.size(); i++) {
+            stmt.setObject(i, columnValues.get(i - 1));
+        }
+
+        // Execute query
+        ResultSet rs = stmt.executeQuery();
+
+        // Set value of primary key on object
+        if (rs.next() && primaryKeyField != null) {
+            primaryKeyField.set(obj, rs.getInt(1));
+        }
+
+        conn.close();
+    }
 }
