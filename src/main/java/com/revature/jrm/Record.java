@@ -282,7 +282,6 @@ public class Record {
 
     }
 
-    
     public static <T> void dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	log.info("Running query to drop table");
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
@@ -414,5 +413,5 @@ public class Record {
         stmt.execute();
     	
     }
-    
+
 }

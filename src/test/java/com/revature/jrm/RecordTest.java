@@ -8,6 +8,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.io.FileReader;
 import java.sql.*;
@@ -18,7 +19,7 @@ import static org.junit.Assert.*;
 
 
 @Entity(tableName = "example")
-class Example extends Model {
+class Example {
     @PrimaryKey(columnName = "id")
     public int id;
 
@@ -48,8 +49,7 @@ public class RecordTest {
         ConnectionPool.setDataSource(ds);
     }
 
-    @Before
-    public void setUp() throws Exception {
+    public static void createExampleTable() throws SQLException {
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();
         stmt.execute("create table if not exists example (id serial primary key, foo varchar(64))");
@@ -60,11 +60,12 @@ public class RecordTest {
     public void tearDown() throws Exception {
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();
-        stmt.execute("drop table example");
+        stmt.execute("drop table if exists example");
         conn.close();
     }
 
     private static int insertExample(String foo) throws SQLException {
+        createExampleTable();
         Connection conn = ConnectionPool.getConnection();
         PreparedStatement stmt =  conn.prepareStatement("insert into example (foo) values (?)");
         stmt.setString(1, foo);
@@ -105,5 +106,28 @@ public class RecordTest {
             assertEquals(0, count);
         }
         conn.close();
+    }
+
+    @Test
+    public void createTable() throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException {
+        Record.createTable(Example.class);
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+
+        try {
+            stmt.execute("select * from example");
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+    @Test(expected = PSQLException.class)
+    public void dropTable() throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException {
+        createExampleTable();
+        Record.dropTable(Example.class);
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("select * from example");
     }
 }
