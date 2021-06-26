@@ -10,7 +10,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.FileReader;
-import java.io.IOException;
 import java.sql.*;
 import java.util.List;
 import java.util.Properties;
@@ -92,10 +91,10 @@ public class RecordTest {
     }
 
     @Test
-    public void destroy_all() throws SQLException {
+    public void destroyAll() throws SQLException {
         int id1 = insertExample("foo");
         int id2 = insertExample("bar");
-        Record.destroy_all(Example.class);
+        Record.destroyAll(Example.class);
 
         Connection conn = ConnectionPool.getConnection();
         Statement stmt = conn.createStatement();

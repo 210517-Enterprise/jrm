@@ -214,7 +214,7 @@ public class Record {
      *
      * @param type the model class to delete
      */
-    public static void destroy_all(Class type) throws SQLException {
+    public static void destroyAll(Class type) throws SQLException {
         // 1. Use reflection API to get the table name from annotations
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"
