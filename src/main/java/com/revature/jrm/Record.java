@@ -220,8 +220,8 @@ public class Record {
         // 3. Delete all objects e.g. "delete from users"
     	Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
         Connection conn = ConnectionPool.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("DELETE * FROM " + entity.tableName());
-        ResultSet rs = stmt.executeQuery();
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM " + entity.tableName());
+        stmt.execute();
     }
 
     

@@ -75,7 +75,7 @@ public class RecordTest {
     }
 
     @Test
-    public void get() throws SQLException, IllegalAccessException, InstantiationException {
+    public void get() throws SQLException, IllegalAccessException, InstantiationException, NoSuchFieldException {
         int id = insertExample("bar");
         assertEquals(id, 1);
         Example e = Record.get(Example.class, id);
@@ -84,7 +84,7 @@ public class RecordTest {
     }
 
     @Test
-    public void all() throws SQLException {
+    public void all() throws SQLException, InstantiationException, IllegalAccessException {
         int id1 = insertExample("foo");
         int id2 = insertExample("bar");
         List<Example> examples = Record.all(Example.class);
