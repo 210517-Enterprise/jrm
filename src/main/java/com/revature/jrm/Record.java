@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -19,9 +20,12 @@ import com.revature.exceptions.MultiplePrimaryKeyException;
 public class Record {
 	
 	private static final Logger log = LoggerFactory.getLogger(Record.class);
-	
 	private static HashMap<String, Object> cache = new HashMap<String, Object>();
 	private static HashMap<String, List<Object>> cache_list = new HashMap<String, List<Object>>();
+	private static Connection transactionConn = null;
+
+	private static Map<String, Savepoint> savepoints = new HashMap<>();
+
     /**
      * Returns an object from the specified class using results from ResultSet
      *
@@ -77,7 +81,7 @@ public class Record {
                 }
             }
         }
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " + id_column + " = ?");
         stmt.setInt(1, id);
         ResultSet rs = stmt.executeQuery();
@@ -86,9 +90,15 @@ public class Record {
         	log.info("Retrieved entry from database");
         	T value = objFromResultSet(type, rs);
         	cache.put(key,value );
+            if (transactionConn == null) {
+                conn.close();
+            }
             return objFromResultSet(type, rs);
         } else {
         	log.info("Failed to retrieve entry from database");
+        	if (transactionConn == null) {
+        	    conn.close();
+            }
             return null;
         }
     }
@@ -112,7 +122,7 @@ public class Record {
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
-    	Connection conn = ConnectionPool.getConnection();
+    	Connection conn = getConnection();
         // 3. Query for all entities
     	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " ; ");
     	
@@ -130,6 +140,10 @@ public class Record {
 		}
 		
     	cache_list.put(key,  (List<Object>) results);
+
+        if (transactionConn == null) {
+            conn.close();
+        }
         return results;
     }
 
@@ -152,7 +166,7 @@ public class Record {
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
-    	Connection conn = ConnectionPool.getConnection();
+    	Connection conn = getConnection();
         // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
     	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " +column_name+ " = ?");
     	
@@ -172,6 +186,10 @@ public class Record {
 			
 		}
 		cache_list.put(key,(List<Object>) results);
+
+        if (transactionConn == null) {
+            conn.close();
+        }
         return results;
     }
     
@@ -185,7 +203,7 @@ public class Record {
         // 1. Use reflection API to get the table name from annotations
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         // 2. Get connection from connection pool
-    	Connection conn = ConnectionPool.getConnection();
+    	Connection conn = getConnection();
         // 3. Build a select all query with query string parameter e.g. "select * from users where ?"
     	PreparedStatement stmt = conn.prepareStatement("select * from " + entity.tableName() + " where " +column_name+" = ?");
     	
@@ -204,6 +222,10 @@ public class Record {
 			
 		}
 		cache_list.put(key,(List<Object>) results);
+
+        if (transactionConn == null) {
+            conn.close();
+        }
         return results;
     }
 
@@ -217,15 +239,19 @@ public class Record {
         // 2. Get connection from connection pool
         // 3. Delete all objects e.g. "delete from users"
     	Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement("DELETE FROM " + entity.tableName());
         stmt.execute();
+
+        if (transactionConn == null) {
+            conn.close();
+        }
     }
 
     public static <T> void destroy(T obj) throws SQLException, IllegalAccessException {
         Class<?> type = obj.getClass();
         Entity entity = (Entity) type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
 
         String primaryKey = "";
         int id = -1;
@@ -243,7 +269,10 @@ public class Record {
         PreparedStatement stmt = conn.prepareStatement("DELETE FROM " + entity.tableName() + " WHERE id = ?");
         stmt.setInt(1, id);
         stmt.execute();
-        conn.close();
+
+        if (transactionConn == null) {
+            conn.close();
+        }
     }
 
     public static <T> void createTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
@@ -293,20 +322,22 @@ public class Record {
         	columns_altered += columns.charAt(i); 
         }
         
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; "
         		+ "create table " + entity.tableName() + "( "+ columns_altered 
         		+ " );");
 
         stmt.execute();
 
-
+        if (transactionConn == null) {
+            conn.close();
+        }
     }
 
     public static <T> void dropTable(Class<T> type) throws NoSuchFieldException, IllegalAccessException, InstantiationException, SQLException {
     	log.info("Running query to drop table");
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; ");
         stmt.execute();
 
@@ -319,12 +350,14 @@ public class Record {
                 "select from information_schema.tables " +
                 "where table_name = '" + entity.tableName() + "')";
 
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(query);
 
         boolean exists = rs.next() && rs.getBoolean(1);
-        conn.close();
+        if (transactionConn == null) {
+            conn.close();
+        }
         return exists;
     }
 
@@ -355,12 +388,14 @@ public class Record {
                 "select from " + entity.tableName() + " " +
                 "where " + primaryKey + "=" + id + ")";
 
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery(query);
 
         boolean exists = rs.next() && rs.getBoolean(1);
-        conn.close();
+        if (transactionConn == null) {
+            conn.close();
+        }
         return exists;
     }
 
@@ -424,7 +459,7 @@ public class Record {
             query.append(String.format("insert into %s (%s) values (%s) returning %s", entity.tableName(), columns, parameters, primaryKey));
         }
 
-        Connection conn = ConnectionPool.getConnection();
+        Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement(query.toString());
 
         // Set column values in PreparedStatement
@@ -440,6 +475,45 @@ public class Record {
             primaryKeyField.set(obj, rs.getInt(1));
         }
 
-        conn.close();
+        if (transactionConn == null) {
+            conn.close();
+        }
     }
+
+    private static Connection getConnection() throws SQLException {
+        if (transactionConn != null) {
+            return transactionConn;
+        } else {
+            return ConnectionPool.getConnection();
+        }
+    }
+
+    public static void beginTransaction() throws SQLException {
+        transactionConn = ConnectionPool.getConnection();
+        transactionConn.setAutoCommit(false);
+    }
+
+    public static void commitTransaction() throws SQLException {
+        transactionConn.commit();
+        transactionConn.close();
+        transactionConn = null;
+    }
+
+    public static void rollback() throws SQLException {
+        transactionConn.rollback();
+        transactionConn.close();
+        transactionConn = null;
+    }
+
+    public static void rollback(String savepoint) throws SQLException {
+        Savepoint sp = savepoints.get(savepoint);
+        transactionConn.rollback(sp);
+    }
+
+    public static void setSavepoint(String name) throws SQLException {
+        if (transactionConn != null) {
+            savepoints.put(name, transactionConn.setSavepoint());
+        }
+    }
+
 }

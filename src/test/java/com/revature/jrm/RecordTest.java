@@ -201,4 +201,46 @@ public class RecordTest {
             fail();
         }
     }
+
+    @Test
+    public void transactionSuccess() throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException {
+        Record.beginTransaction();
+        Example ex = new Example();
+        ex.foo = "bar";
+        ex.bar = 42;
+        Record.save(ex);
+        ex.bar = 39;
+        Record.save(ex);
+        Record.commitTransaction();
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select bar from example where id = " + ex.id);
+
+        if (rs.next()) {
+            assertEquals(39, rs.getInt(1));
+        }
+    }
+
+    @Test
+    public void savepointSuccess() throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException {
+        Record.beginTransaction();
+        Example ex = new Example();
+        ex.foo = "bar";
+        ex.bar = 42;
+        Record.save(ex);
+        Record.setSavepoint("foo");
+        ex.bar = 39;
+        Record.save(ex);
+        Record.rollback("foo");
+        Record.commitTransaction();
+
+        Connection conn = ConnectionPool.getConnection();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select bar from example where id = " + ex.id);
+
+        if (rs.next()) {
+            assertEquals(42, rs.getInt(1));
+        }
+    }
 }
