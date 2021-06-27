@@ -342,6 +342,71 @@ public class Record {
         stmt.execute();
 
     }
+    
+    public static <T> void insert(Class<T> type, T obj) throws SQLException, IllegalArgumentException, IllegalAccessException {
+    	log.info("Running query to insert an entry");
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
+    	Connection conn = ConnectionPool.getConnection();
+    	
+    	int counter=0;
+    	String columns = "";
+        for (Field field : type.getDeclaredFields()) {
+        	System.out.println(field);
+        	if(field.getType() == int.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                	 if(a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + ", ";
+	                    counter++;
+	                    System.out.println("Proccessing a regular integer class " + counter);
+	                }
+	            }
+        	}else if(field.getType() == String.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + ", ";
+	                    counter++;
+	                    System.out.println("Proccessing a field of String class " + counter);
+	                }
+	            }
+        	}
+        }
+    	
+        String altered_columns = "";
+        for(int i=0;i< columns.length()-2;i++) {
+        	altered_columns += columns.charAt(i);
+        }
+        
+        String values = " ? ";
+        for(int i=0; i<counter-1;i++) {
+        	values += ", ? ";
+        }
+        
+        
+        PreparedStatement stmt = conn.prepareStatement("insert into " + entity.tableName() + "( " + altered_columns + ") values ( " + values + " );");
+        
+        int number = 1;
+        for(Field field : (obj.getClass()).getDeclaredFields()) {
+			for (Annotation a : field.getDeclaredAnnotations()) {
+				if (a.annotationType() == Column.class) {
+					field.setAccessible(true);
+					if (field.getType() == int.class) {
+						stmt.setInt(number, (int) field.get(obj));
+						number++;
+					} else if (field.getType() == String.class) {
+						stmt.setString(number, (String) field.get(obj));
+						number++;
+					}
+				}
+			}	 
+        }
+        
+        stmt.execute();
+    	
+    }
 
     public static <T> boolean tableExists(Class<T> type) throws SQLException {
         Entity entity = type.getDeclaredAnnotation(Entity.class);
