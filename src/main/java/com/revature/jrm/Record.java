@@ -284,7 +284,7 @@ public class Record {
         int number_of_primarykeys = 0, counter=0;
         String columns = "";
         for (Field field : type.getDeclaredFields()) {
-        	System.out.println(field);
+        	//System.out.println(field);
         	if(field.getType() == int.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                if (a.annotationType() == PrimaryKey.class) {
@@ -296,13 +296,13 @@ public class Record {
 	                    columns += col.columnName() + " serial primary key, ";
 	                    number_of_primarykeys++;
 	                    counter++;
-	                    System.out.println("Proccessing to pk integer class " + counter );
+	                  //  System.out.println("Proccessing to pk integer class " + counter );
 	                }else if(a.annotationType() == Column.class) {
 	                    Column col = (Column) a;
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + " Integer not null, ";
 	                    counter++;
-	                    System.out.println("Proccessing a regular integer class " + counter);
+	               //     System.out.println("Proccessing a regular integer class " + counter);
 	                }  
 	            }
         	}else if(field.getType() == String.class) {
@@ -312,7 +312,7 @@ public class Record {
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + " varchar(30) not null, ";
 	                    counter++;
-	                    System.out.println("Proccessing a field of String class " + counter);
+	                //    System.out.println("Proccessing a field of String class " + counter);
 	                }
 	            }
         	}
@@ -327,7 +327,7 @@ public class Record {
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; "
         		+ "create table " + entity.tableName() + "( "+ columns_altered 
         		+ " );");
-
+        System.out.println(type + " Table created");
         stmt.execute();
 
         if (transactionConn == null) {
@@ -340,6 +340,7 @@ public class Record {
     	Entity entity = type.getDeclaredAnnotation(Entity.class);
         Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement("drop table if exists " + entity.tableName() + " cascade; ");
+        System.out.println(type + " Table dropped");
         stmt.execute();
 
     }
@@ -352,7 +353,7 @@ public class Record {
     	int counter=0;
     	String columns = "";
         for (Field field : type.getDeclaredFields()) {
-        	System.out.println(field);
+     //   	System.out.println(field);
         	if(field.getType() == int.class) {
 	            for (Annotation a : field.getDeclaredAnnotations()) {
 	                	 if(a.annotationType() == Column.class) {
@@ -360,7 +361,7 @@ public class Record {
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + ", ";
 	                    counter++;
-	                    System.out.println("Proccessing a regular integer class " + counter);
+	        //            System.out.println("Proccessing a regular integer class " + counter);
 	                }
 	            }
         	}else if(field.getType() == String.class) {
@@ -370,7 +371,7 @@ public class Record {
 	                    field.setAccessible(true);
 	                    columns += col.columnName() + ", ";
 	                    counter++;
-	                    System.out.println("Proccessing a field of String class " + counter);
+	        //            System.out.println("Proccessing a field of String class " + counter);
 	                }
 	            }
         	}
@@ -405,8 +406,110 @@ public class Record {
 			}	 
         }
         
+        System.out.println("Inserted into " + type + "table");
+        
         stmt.execute();
     	
+    }
+    
+    public static <T> void update(Class<T> type, T obj, int id) throws SQLException, IllegalArgumentException, IllegalAccessException {
+    	log.info("Running query to update an entry");
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
+    	Connection conn = ConnectionPool.getConnection();
+    	
+    	int counter=0;
+    	String columns = "", id_column="";
+        for (Field field : type.getDeclaredFields()) {
+        //	System.out.println(field);
+        	if(field.getType() == int.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                	 if(a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + "=?, ";
+	                    counter++;
+	           //         System.out.println("Proccessing a regular integer class " + counter);
+	                }
+	                	 if(a.annotationType() == PrimaryKey.class) {
+	 	                    PrimaryKey col = (PrimaryKey) a;
+	 	                    field.setAccessible(true);
+	 	                    id_column += col.columnName();
+	 	                }
+	            }
+        	}else if(field.getType() == String.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                if (a.annotationType() == Column.class) {
+	                    Column col = (Column) a;
+	                    field.setAccessible(true);
+	                    columns += col.columnName() + "=?, ";
+	                    counter++;
+	        //            System.out.println("Proccessing a field of String class " + counter);
+	                }
+	            }
+        	}
+        }
+        String altered_columns = "";
+        for(int i=0;i< columns.length()-2;i++) {
+        	altered_columns += columns.charAt(i);
+        }
+        
+        PreparedStatement stmt = conn.prepareStatement("update " + entity.tableName() + " set " + altered_columns + "  where " + id_column + "=? ");
+        
+        int number = 1;
+        for(Field field : (obj.getClass()).getDeclaredFields()) {
+			for (Annotation a : field.getDeclaredAnnotations()) {
+				if (a.annotationType() == Column.class) {
+					field.setAccessible(true);
+					if (field.getType() == int.class) {
+						stmt.setInt(number, (int) field.get(obj));
+						number++;
+					} else if (field.getType() == String.class) {
+						stmt.setString(number, (String) field.get(obj));
+						number++;
+					}
+				}
+			}	 
+        }
+        
+        stmt.setInt(counter+1, id);
+        
+        
+        stmt.execute();
+        
+        System.out.println("Update Query has successfully ran!");
+    }
+    
+    public static <T> void delete(Class<T> type, int id) throws SQLException, IllegalArgumentException, IllegalAccessException {
+    	log.info("Running query to delete an entry");
+    	Entity entity = type.getDeclaredAnnotation(Entity.class);
+    	Connection conn = ConnectionPool.getConnection();
+    	
+    	int counter=0;
+    	String  id_column="";
+        for (Field field : type.getDeclaredFields()) {
+        //	System.out.println(field);
+        	if(field.getType() == int.class) {
+	            for (Annotation a : field.getDeclaredAnnotations()) {
+	                
+	                	 if(a.annotationType() == PrimaryKey.class) {
+	 	                    PrimaryKey col = (PrimaryKey) a;
+	 	                    field.setAccessible(true);
+	 	                    id_column += col.columnName();
+	 	                }
+	            }
+        	}
+        }
+        
+        PreparedStatement stmt = conn.prepareStatement("delete from " + entity.tableName() +  "  where " + id_column + "=? ");
+        
+        
+        
+        stmt.setInt(1, id);
+        
+        
+        stmt.execute();
+        
+        System.out.println("Deletion Query has succefully ran!");
     }
 
     public static <T> boolean tableExists(Class<T> type) throws SQLException {
