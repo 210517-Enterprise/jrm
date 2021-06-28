@@ -93,7 +93,7 @@ public class Record {
             if (transactionConn == null) {
                 conn.close();
             }
-            return objFromResultSet(type, rs);
+            return value;
         } else {
         	log.info("Failed to retrieve entry from database");
         	if (transactionConn == null) {
@@ -258,6 +258,7 @@ public class Record {
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == PrimaryKey.class) {
+                    field.setAccessible(true);
                     PrimaryKey pk = (PrimaryKey) a;
                     primaryKey = pk.columnName();
                     id = field.getInt(obj);
@@ -441,6 +442,7 @@ public class Record {
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == PrimaryKey.class) {
+                    field.setAccessible(true);
                     PrimaryKey pk = (PrimaryKey) a;
                     primaryKey = pk.columnName();
                     id = field.getInt(obj);
@@ -481,6 +483,7 @@ public class Record {
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == Column.class) {
+                    field.setAccessible(true);
                     Column col = (Column) a;
                     columnNames.add(col.columnName());
                     columnValues.add(field.get(obj));
@@ -495,6 +498,7 @@ public class Record {
         for (Field field : type.getDeclaredFields()) {
             for (Annotation a : field.getDeclaredAnnotations()) {
                 if (a.annotationType() == PrimaryKey.class) {
+                    field.setAccessible(true);
                     PrimaryKey pk = (PrimaryKey) a;
                     primaryKey = pk.columnName();
                     id = field.getInt(obj);
